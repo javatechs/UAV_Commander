@@ -1,0 +1,19 @@
+#!/bin/bash
+
+wget -O /tmp/gazebo6_install.sh http://osrf-distributions.s3.amazonaws.com/gazebo/gazebo6_install.sh; sudo sh /tmp/gazebo6_install.sh
+git clone https://github.com/PX4/Firmware.git
+cd Firmware
+
+export CXX=/usr/bin/g++
+export CC=/usr/bin/gcc
+export ARM_ARCHITECTURE=True
+
+echo $PWD
+export GAZEBO_PLUGIN_PATH=${GAZEBO_PLUGIN_PATH}:$PWD/Tools/sitl_gazebo/Build
+export GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:$PWD/Tools/sitl_gazebo/models
+export GAZEBO_MODEL_DATABASE_URI=""
+export SITL_GAZEBO_PATH=$PWD/Tools/sitl_gazebo
+
+
+
+make posix_sitl_default gazebo
