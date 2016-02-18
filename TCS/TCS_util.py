@@ -100,7 +100,7 @@ class Task_manager(object):
         self.tasklog = open(fname, 'r')
         self.tasklist=[]
         self.task_amount=0
-        self.task_index=0
+        self.task_index=-1
         self.task_finish=True
         self.task_env = os.environ.copy()
         self.timestamp=rospy.Time.now()
@@ -112,10 +112,26 @@ class Task_manager(object):
             self.task_amount+=1
         self.tasklog.close()
 
+        # Setup task manager sub
+        self.monitor_sub = rospy.Subscriber('task_monitor', Task_msg, self._task_cb)
 
+    def _task_cb(self, topic):
+        if (self.alldone()):
+            return
+        record_task = self.tasklist[self.task_index][1].split('.',1)[0]
+        #print ("running task: {}, record_task: {}").format(topic.task_name, record_task)
+        if (topic.task_name == record_task and not self.task_finish):
+            #print "Task status is: {}".format(topic.task_status)
+            if (topic.task_status == 'RUNNING'):
+                self.task_finish = False
+            elif(topic.task_status == 'FINISH'):
+                self.task_finish = True
+        else:
+            # error! Running task is not supposed to be this!
+            pass
 
     def alldone(self):
-        if (self.task_index>=self.task_amount):
+        if ((self.task_index>=self.task_amount-1) and self.task_finish):
             rospy.loginfo("All tasks have been done")
             return True
         else:
@@ -124,9 +140,9 @@ class Task_manager(object):
     def nexttask(self):
         if (self.alldone()):
             pass
-        rospy.loginfo("New task will execute: {}".format(self.tasklist[self.task_index]))
-        subprocess.call(self.tasklist[self.task_index], env=self.task_env)
         self.task_index+=1
+        rospy.loginfo("New task will execute: {}".format(self.tasklist[self.task_index]))
+        subprocess.Popen(self.tasklist[self.task_index], env=self.task_env)
         self.task_finish = False
         self.timestamp=rospy.Time.now()
 
@@ -147,27 +163,29 @@ class Task_manager(object):
 class Task_watchdog(object):
     def __init__(self, task_name):
         self.task_name = task_name
-        self.client_pub = rospy.Publisher('task_monitor', task, queue_size=10)
+        self.client_pub = rospy.Publisher('task_monitor', Task_msg, queue_size=10)
         # setup task msg
         self.task_msg = Task_msg()
         self.task_msg.task_name = task_name
         self.task_msg.task_status='PRE-START'
-        self.task_msg.task_init_time = rospy.Time.now()
 
     def _update(self):
         """standardized routine to update the task
         monitor msgs content"""
         self.task_msg.header.frame_id=self.task_name
-        self.task_msg.header.stamp = rospy.Time.now()
-        self.task_msg.task_elapsed = rospy.Duration(rospy.Time.now()-task_msg.task_init_time)
+        self.task_msg.task_status = self.task_status
+        #self.task_msg.header.stamp = rospy.Time.now()
+        #self.task_msg.task_elapsed = rospy.Duration(rospy.Time.now()-task_msg.task_init_time)
 
 
     def report_running(self):
         self.task_status = 'RUNNING'
+        self._update()
         self.client_pub.publish(self.task_msg)
 
     def report_finish(self):
         self.task_status = 'FINISH'
+        self._update()
         self.client_pub.publish(self.task_msg)
 
 

@@ -20,7 +20,10 @@ import os
 import platform
 if (platform.uname()[1]=='ubuntu'):
     sys.path.append('/opt/ros/jade/lib/python2.7/dist-packages')
-elif(platform.uname[1]=='edison'):
+elif(platform.uname()[1]=='edison'):
+    sys.path.append('/opt/ros/jade/lib/python2.7/dist-packages')
+elif(platform.uname()[1]=='xiaoguang'):
+    # this is workstation in 079 Lab
     sys.path.append('/opt/ros/jade/lib/python2.7/dist-packages')
 
 # import ROS libraries
@@ -53,12 +56,12 @@ def set_target(pose, x, y, z):
     to the pose. pose usually is type of 
     mavros.setpoint.PoseStamped
     """
-        pose.pose.position.x = x
-        pose.pose.position.y = y
-        pose.pose.position.z = z
-        pose.header=mavros.setpoint.Header(
-                    frame_id="local_pose",
-                    stamp=rospy.Time.now())
+    pose.pose.position.x = x
+    pose.pose.position.y = y
+    pose.pose.position.z = z
+    pose.header=mavros.setpoint.Header(
+        frame_id="local_pose",
+        stamp=rospy.Time.now())
 
 def local_position_cb(topic):
     """local position subscriber callback function
@@ -101,7 +104,7 @@ def main():
     	SP.PoseStamped, local_position_cb)
 
     # setup task pub
-    task_watchdog = Task_watchdog('LOCAL_GOTO')
+    task_watchdog = TCS_util.Task_watchdog('TASK_LOCAL_GOTO')
 
     # interprete the input position
     setpoint_arg = sys.argv[1].split(' ')
@@ -130,7 +133,7 @@ def main():
     # TODO: publish the task status as FINISHING
     task_watchdog.report_finish()
 
-    return
+    return 0
 
 
 if __name__ == '__main__':

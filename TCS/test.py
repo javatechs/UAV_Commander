@@ -28,7 +28,8 @@ print tasklist[0]
 
 #call the first task
 # subprocess.call(' '.join(tasklist[0]), env=tasklist_env)
-subprocess.call(tasklist[0], env=tasklist_env)
+subprocess.Popen(tasklist[0], env=tasklist_env)
+print "task executed"
 # subprocess.call('', shell=True, env=tasklist_env)
 
 

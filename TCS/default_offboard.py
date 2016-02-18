@@ -128,7 +128,6 @@ def main():
 
     # enter the main loop
     while(True):
-        # rospy.loginfo("Entered while loop")
         # print "Entered whiled loop"
         if( UAV_state.mode != "OFFBOARD" and
             (rospy.Time.now() - last_request > rospy.Duration(5.0))):
@@ -144,50 +143,22 @@ def main():
 
         # update setpoint to stay in offboard mode
         setpoint_keeper.update()
-
-        # # print "Before Task loop"
-        # if (UAV_state.armed):
-        #     # print "Now we are in step {0}".format(step)
-        #     if (step == 1):
-        #         task_goto.goto(5,5,8.1)
-        #         task_done = task_goto.check_task()
-
-        #     elif (step == 2):
-        #         # stay at current position for 10 seconds
-        #         task_stay.stay_at_time(10.0)
-        #         task_done = task_stay.check_task()
-        #     elif (step == 3):
-        #         task_goto.goto(-10,0,5.1)
-        #         task_done = task_goto.check_task()
-        #     elif (step == 4):
-        #         task_goto.goto(0,0,5.1)
-        #         task_done = task_goto.check_task()
-        #     else:
-        #         while (UAV_state.mode != "AUTO.LAND"):
-        #             set_mode(0,'AUTO.LAND')
-        #             rate.sleep()
-        #         return 0
-        #              # Exit program
-        #     if (task_done):
-        #         step+=1
-        #         task_stay.reset_stay()
         
-        
+
         if(Task_mgr.task_finished()):
             # If the current task has been done
+            rospy.loginfo("Current task is finished!")
             if (not Task_mgr.alldone()):
                 # If there are tasks left
                 Task_mgr.nexttask()
 
             else:
                 # Current task has been done and no task left
-                 while (UAV_state.mode != "AUTO.LAND"):
-                     set_mode(0,'AUTO.LAND')
-                     rate.sleep()
-                 return 0
-        else:
-            # If current task has not been done
-            pass
+                rospy.loginfo("All tasks have been done!")
+                while (UAV_state.mode != "AUTO.LAND"):
+                    set_mode(0,'AUTO.LAND')
+                    rate.sleep()
+                return 0
 
         rate.sleep()
     return 0
