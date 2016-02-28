@@ -10,7 +10,6 @@ import mavros.command
 import mavros_msgs.msg
 import mavros_msgs.srv
 import time
-import serial
 from datetime import datetime
 
 # import mraa

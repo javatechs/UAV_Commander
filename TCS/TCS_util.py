@@ -11,7 +11,6 @@ import mavros_msgs.msg
 import mavros_msgs.srv
 import geometry_msgs
 import time
-import serial
 from datetime import datetime
 from dart.msg import task as Task_msg
 

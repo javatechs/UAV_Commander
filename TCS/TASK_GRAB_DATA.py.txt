@@ -1,0 +1,94 @@
+#!/usr/bin/env python
+'''
+This task is the GRAB_DATA task (for 136 implementation)
+It sends a signal to another controller
+The other controller begins to collect data from wireless sensors
+When the controller is done, it signals back that collection is done
+When collection is done, the task is finished
+TODO:
+implement interrupt handling
+implement GPIO toggle
+
+Reference MRAA: http://iotdk.intel.com/docs/master/mraa/edison.html
+'''
+
+# import utilities
+import math
+import sys
+import signal
+import subprocess
+import os
+import platform
+if (platform.uname()[1]=='ubuntu'):
+    sys.path.append('/opt/ros/jade/lib/python2.7/dist-packages')
+elif(platform.uname[1]=='edison'):
+    sys.path.append('/opt/ros/jade/lib/python2.7/dist-packages')
+
+
+# this import is done assuming mraa (gpio library) was installed
+import mraa
+
+
+# import ROS libraries
+import rospy
+import mavros
+from mavros.utils import *
+from mavros import setpoint as SP
+import mavros.command
+import mavros_msgs.msg
+import mavros_msgs.srv
+import time
+from datetime import datetime
+
+import TCS_util
+
+# setup frame_id
+frame_id='GRAB_DATA'
+
+
+# INTERRUPT HANDLER
+
+def riseDetected(args):
+	if COLLECT_COMPLETE.read(4) == 1:
+		doneFlag = 1
+		START_DATA_COLLECT.write(0)
+
+
+# MAIN PROCESS
+
+def main():
+
+	# setup rospy env
+    	rospy.init_node('TCS_task', anonymous=True)
+   	rate = rospy.Rate(20)
+    	mavros.set_namespace('/mavros')
+
+	doneFlag = 0
+	
+	# setup task pub
+    	task_watchdog = Task_watchdog('GRAB_DATA')
+
+	# setup GPIO
+	START_DATA_COLLECT = mraa.Gpio(5) # some number corresponding to Edison pinout
+	START_DATA_COLLECT.dir(mraa.DIR_OUT)
+	START_DATA_COLLECT.write(1)
+
+	COLLECT_COMPLETE = mraa.Gpio(4) # some Edison pinout number
+	COLLECT_COMPLETE.dir(mraa.DIR_IN)
+	COLLECT_COMPLETE.isr(mraa.EDGE_BOTH, riseDetected, riseDetected)
+
+	# indicate that the task is running
+	task_watchdog.report_running()
+
+	# wait for pin COLLECT_COMPLETE to go high (interrupt)
+	
+	#if the task is done, report finished
+	if (doneFlag):
+		task_watchdog.report_finish()
+	else:
+		task_watchdog.report_running()
+
+	return
+
+if __name__ == '__main__':
+    main()
