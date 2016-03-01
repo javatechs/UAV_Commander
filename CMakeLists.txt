@@ -7,7 +7,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
   rospy
   mavros
   std_msgs
@@ -107,7 +106,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES beginner_tutorials
-  CATKIN_DEPENDS roscpp rospy std_msgs sensor_msgs message_runtime
+  CATKIN_DEPENDS rospy std_msgs sensor_msgs message_runtime
 #  DEPENDS system_lib
 )
 
@@ -135,29 +134,29 @@ include_directories(
 ## Declare a C++ executable
 # add_executable(beginner_tutorials_node src/beginner_tutorials_node.cpp)
 
-add_executable(robot_cleaner_node src/robot_cleaner.cpp)
-target_link_libraries(robot_cleaner_node ${catkin_LIBRARIES})
-add_dependencies(robot_cleaner_node dart)
+# add_executable(robot_cleaner_node src/robot_cleaner.cpp)
+# target_link_libraries(robot_cleaner_node ${catkin_LIBRARIES})
+# add_dependencies(robot_cleaner_node dart)
 
-add_executable(temp_listener_node src/temp_listener.cpp)
-target_link_libraries(temp_listener_node ${catkin_LIBRARIES})
-add_dependencies(temp_listener_node dart)
+# add_executable(temp_listener_node src/temp_listener.cpp)
+# target_link_libraries(temp_listener_node ${catkin_LIBRARIES})
+# add_dependencies(temp_listener_node dart)
 
-add_executable(offboard_node src/off_board.cpp)
-target_link_libraries(offboard_node ${catkin_LIBRARIES})
-add_dependencies(offboard_node dart)
+# add_executable(offboard_node src/off_board.cpp)
+# target_link_libraries(offboard_node ${catkin_LIBRARIES})
+# add_dependencies(offboard_node dart)
 
-add_executable(node_pose_node src/dart_node_pose.cpp)
-target_link_libraries(node_pose_node ${catkin_LIBRARIES})
-add_dependencies(node_pose_node dart)
+# add_executable(node_pose_node src/dart_node_pose.cpp)
+# target_link_libraries(node_pose_node ${catkin_LIBRARIES})
+# add_dependencies(node_pose_node dart)
 
-add_executable(sonar_node src/sonar_avoidance.cpp)
-target_link_libraries(sonar_node ${catkin_LIBRARIES})
-add_dependencies(sonar_node dart)
+# add_executable(sonar_node src/sonar_avoidance.cpp)
+# target_link_libraries(sonar_node ${catkin_LIBRARIES})
+# add_dependencies(sonar_node dart)
 
-add_executable(offboard_1m_node src/offboard_1m.cpp)
-target_link_libraries(offboard_1m_node ${catkin_LIBRARIES})
-add_dependencies(offboard_1m_node dart)
+# add_executable(offboard_1m_node src/offboard_1m.cpp)
+# target_link_libraries(offboard_1m_node ${catkin_LIBRARIES})
+# add_dependencies(offboard_1m_node dart)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above

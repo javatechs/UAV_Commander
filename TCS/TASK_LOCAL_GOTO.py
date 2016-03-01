@@ -18,7 +18,11 @@ import signal
 import subprocess
 import os
 import platform
-if (platform.uname()[1]=='ubuntu'):
+
+import re
+
+osname = platform.uname()[3]
+if (bool(re.search('[uU]buntu', osname))):
     sys.path.append('/opt/ros/jade/lib/python2.7/dist-packages')
 elif(platform.uname()[1]=='edison'):
     sys.path.append('/opt/ros/jade/lib/python2.7/dist-packages')

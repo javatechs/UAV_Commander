@@ -10,13 +10,13 @@ import mavros.command
 import mavros_msgs.msg
 import mavros_msgs.srv
 import time
-import pyserial
+import serial
 from datetime import datetime
 
 # import mraa
 import sys
-sys.path.append('/usr/local/lib/i386-linux-gnu/python2.7/site-packages/')
 import mraa
+sys.path.append('/usr/local/lib/i386-linux-gnu/python2.7/site-packages/')
 
 
 class vector3(object):
@@ -270,7 +270,7 @@ class Task_GetData(object):
         elif(self.state is 'SENDCMD'):
             self._serialize("COLLECT")
             self.state = 'CMDWAIT'
-        elif(self.state is 'CMDWAIT')
+        elif(self.state is 'CMDWAIT'):
             if(self._delay(5) == True):
                 self.state = 'DATACOLLECT'
         elif(self.state is 'DATACOLLECT'):
@@ -303,7 +303,7 @@ class Task_GetData(object):
             self.delay_state = 'pending'
             return False
         elif (self.delay_state is 'pending'):
-            if (rospy.Time.now() - self.delay_time >= rospy.Duration(self.delay_duration))
+            if (rospy.Time.now() - self.delay_time >= rospy.Duration(self.delay_duration)):
                 return True
             else:
                 return False
