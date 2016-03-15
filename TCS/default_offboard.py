@@ -103,8 +103,6 @@ def main():
     #read task list
     Task_mgr = TCS_util.Task_manager('task_list.log')
 
-    # start setpoint_update instance
-    setpoint_keeper = TCS_util.update_setpoint(rospy)
 
     # wait for FCU connection
     while(not UAV_state.connected):
@@ -123,6 +121,9 @@ def main():
         rate.sleep()
 
     set_mode(0,'OFFBOARD')
+
+    # start setpoint_update instance
+    setpoint_keeper = TCS_util.SetpointMonitor(rospy)
 
     last_request = rospy.Time.now()
 
@@ -143,7 +144,8 @@ def main():
                 last_request = rospy.Time.now()
 
         # update setpoint to stay in offboard mode
-        setpoint_keeper.update()
+        # does it work with global setpoints? Do we need global setpoints at all?
+        setpoint_keeper.update(type='LOCAL')
         
 
         if(Task_mgr.task_finished()):

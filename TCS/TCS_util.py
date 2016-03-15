@@ -9,6 +9,7 @@ import mavros.setpoint
 import mavros.command
 import mavros_msgs.msg
 import mavros_msgs.srv
+import std_msgs.msg
 import geometry_msgs
 import time
 from datetime import datetime
@@ -31,9 +32,8 @@ class vector3(object):
         self.z = 0.0
 
 
-class update_setpoint(object):
+class SetpointMonitor(object):
     def __init__(self,rospy):
-        self.update_flag='LOCAL'
         self.frame_id='UPDATE_SETPOINT'
         self.timestamp=rospy.Time.now()
 
@@ -43,25 +43,29 @@ class update_setpoint(object):
         geometry_msgs.msg.PoseStamped, self._local_cb)
         self.local_last_pos=vector3()
         self.local_msg=mavros.setpoint.PoseStamped(
-            header=mavros.setpoint.Header(
+            header=std_msgs.msg.Header(
                 frame_id=self.frame_id,
                 stamp=rospy.Time.now()),
             )
 
         #setup GPS position
-        # self.GPS_pub =  rospy.Publisher(mavros.get_topic('setpoint_raw', 'global'),
-        #  mavros_msgs.msg.GlobalPositionTarget, queue_size=10)
-        # self.GPS_last_pos=0
-        # self.GPS_sub = rospy.Subscriber(mavros.get_topic('setpoint_raw', 'target_global'),
-        # mavros_msgs.msg.GlobalPositionTarget, self._GPS_cb)
-        # self.GPS_msg=0
+        self.global_pub =  rospy.Publisher(mavros.get_topic('setpoint_raw', 'global'),
+        mavros_msgs.msg.GlobalPositionTarget, queue_size=10)
+        self.global_last_pos=vector3()
+        self.global_sub = rospy.Subscriber(mavros.get_topic('setpoint_raw', 'target_global'),
+        mavros_msgs.msg.GlobalPositionTarget, self._GPS_cb)
+        self.global_msg=mavros_msgs.msg.GlobalPositionTarget(
+            header=std_msgs.msg.Header(
+                frame_id=self.frame_id,
+                stamp=rospy.Time.now()),
+            )
+        )
 
     def _local_cb(self, topic):
         if (topic.header.frame_id == self.frame_id):
             # ignore the msgs sent by myselfs
             return
 
-        self.update_flag='LOCAL'
         self.timestamp=rospy.Time.now()
         # rospy.loginfo("setpoint_raw target_local get: x=%s, y=%s, z=%s,", 
             # topic.pose.position.x, topic.pose.position.y, topic.pose.position.z)
@@ -69,11 +73,17 @@ class update_setpoint(object):
         self.local_last_pos.y=topic.pose.position.y;
         self.local_last_pos.z=topic.pose.position.z;
 
-    # def _GPS_cb(self, topic):
-    #     self.update_flag='GPS'
-    #     self.GPS_last_pos = topic
+    def _global_cb(self, topic):
+        if(topic.header.frame_id == self.frame_id):
+            return
 
-    def _set_pose(self, pose, pos):
+        self.update_flag='GLOBAL'
+        self.timestamp=rospy.Time.now()
+        self.global_last_pos.x=topic.latitude
+        self.global_last_pos.y=topic.longitude
+        self.global_last_pos.z=topic.altitude
+
+    def _set_pose_local(self, pose, pos):
         pose.pose.position.x = pos.x
         pose.pose.position.y = pos.y
         pose.pose.position.z = pos.z
@@ -81,18 +91,27 @@ class update_setpoint(object):
                     frame_id=self.frame_id,
                     stamp=rospy.Time.now())
 
-    def update(self):
+    def _set_pose_global(self, msg, pos):
+        msg.latitude = pos.x
+        msg.longtidue = pos.y
+        msg.altitude = pos.z
+        msg.header=std_msgs.msg.Header(
+                    frame_id=self.frame_id, 
+                    stamp=rospy.Time.now())
+
+    def update(self, type='LOCAL'):
         if(rospy.Time.now()-self.timestamp < (rospy.Duration(0.05))):
             # if setpoint was publishing on time, dont bother to send again
             return
         # rospy.loginfo("Setpoint_keeper sending the setpoint!")
-        if (self.update_flag=='LOCAL'):
-            self._set_pose(self.local_msg, self.local_last_pos)
+        if (type=='LOCAL'):
+            self._set_pose_local(self.local_msg, self.local_last_pos)
             self.local_pub.publish(self.local_msg)
-        # if (update_flag=='GPS'):
-        #     self._set_pose(self.GPS_msg, self.GPS_last_pos)
-        #     self.GPS_pub.publish(self.GPS_msg)
-        pass
+        elif (type=='GLOBAL'):
+            self._set_pose(self.global_msg, self.global_last_pos)
+            self.global_pub.publish(self.GPS_msg)
+        else: #shall not reach here
+            pass
 
 class Task_manager(object):
     def __init__(self, fname):
@@ -117,8 +136,10 @@ class Task_manager(object):
     def _task_cb(self, topic):
         if (self.alldone()):
             return
+        # the following line is very inefficient
         record_task = self.tasklist[self.task_index][1].split('.',1)[0]
         #print ("running task: {}, record_task: {}").format(topic.task_name, record_task)
+        # very unsafe: multiple tasks with the same name can change the task status despite the order
         if (topic.task_name == record_task and not self.task_finish):
             #print "Task status is: {}".format(topic.task_status)
             if (topic.task_status == 'RUNNING'):
