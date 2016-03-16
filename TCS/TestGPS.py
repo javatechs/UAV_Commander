@@ -5,7 +5,7 @@ import mavros
 import mavros.mavlink as mavlink
 import mavros_msgs.msg as msg
 
-from geometry_msgs.msg import PoseWithCovarianceStamped
+from sesnor_msgs.msg import NavSatFix 
 from geometry_msgs.msg import PoseStamped
 from mavros_msgs.msg import PositionTarget
 
@@ -24,12 +24,16 @@ def CallBackSP(data):
     print 'setpoint_raw callbacked.'
     print data
 
-def CallBackLocal(data):
+def CallBackGlobal(data):
     print 'gps_position callbacked.'
-    pose = data.pose.position
+    lat = data.latitude
+    lon = data.longitude
+    alt = data.altitude
     #publish to GCS
-    s = "[GPS Coordinate] x: %f, y: %f, z: %f" % (pose.x, pose.y, pose.z)
+    s = "[GPS Coordinate] x: %f, y: %f, z: %f" % (lat, lon, alt)
     print s
+
+"""
     bstr = bytearray(s)
     global MAV_SEVERITY_INFO
     bstr.insert(0,MAV_SEVERITY_INFO)
@@ -44,7 +48,7 @@ def CallBackLocal(data):
     
     global mav_pub
     mav_pub.publish(m)
-
+"""
 
 #rospy.Subscriber(mavros.get_topic('setpoint_raw', 'target_local'), PositionTarget, CallBackSP)
 
@@ -58,7 +62,7 @@ def main():
     mavros.set_namespace('/mavros')
     
     # Test script
-    rospy.Subscriber(mavros.get_topic('local_position', 'pose'), PoseStamped,CallBackLocal)
+    rospy.Subscriber(mavros.get_topic('global_position', 'global'), NavSatFix,CallBackGlobal)
     
     global mav_pub
     mav_pub = rospy.Publisher(mavros.get_topic('gcs_bridge','to'), msg.Mavlink)
