@@ -18,6 +18,7 @@ import signal
 import subprocess
 import os
 import platform
+import numpy
 
 import re
 
@@ -43,36 +44,57 @@ import time
 from datetime import datetime
 
 import TCS_util
+import Coordinate
 
 # Declare some global variables.
-# current position
+# home position: GPS
+home_position = TCS_util.vector3()
+# indicate task as initiated
+task_started = False
+# current position: Local
 current_position = TCS_util.vector3()
 # setpoint message. The type will be changed later in main()
 setpoint_msg = 0
-# setpoint position
+# setpoint position: GPS
+setpoint_position_global = TCS_util.vector3()
+# setpoint position: local
 setpoint_position = TCS_util.vector3()
 # precision setup. Need to tweak this parameter a bit to have a stable GPS flight
-precision = 0.005
+precision = 0.5
 # setup frame_id
 frame_id='GLOBAL_GOTO'
+
+def convertSPtoLocal():
+    """https://en.wikipedia.org/wiki/Geographic_coordinate_conversion
+    """
+    global home_position
+    lato,lono,alto = home_position.x, home_position.y, home_position.z
+    homeECEF = Coordinate.globalToECEF(lato,lono,alto)
+
+    global setpoint_position_global
+    latsp,lonsp,altsp = setpoint_position_global.x, setpoint_position_global.y, setpoint_position_global.z
+    spECEF = Coordinate.globalToECEF(latsp,lonsp,altsp)
+
+    #Compute setpoint_position
+    global setpoint_position
+    setpoint_position = Coordinate.ECEFtoENU(spECEF,homeECEF,lato,lono)
+    
+    
 
 def set_target(msg, x, y, z):
     """A wrapper assigning the x,y,z values
     """
-    msg.latitude = x
-    msg.longitude = y
-    msg.altitude = z
+    msg.pose.position = x
+    msg.pose.position = y
+    msg.pose.position = z
     pose.header=mavros.setpoint.Header(
-        frame_id="global_pose", #?
+        frame_id="global_pose", 
         stamp=rospy.Time.now())
 
-def position_cb(data):
-    """position subscriber callback function
-    """
-    print data.header.frame_id
-    current_position.x = data.latitude
-    current_position.y = data.longitude
-    current_position.z = data.altitude
+def local_cb(data):
+    current_position.x = data.pose.position.x
+    current_position.y = data.pose.position.y
+    current_position.z = data.pose.position.z
 
 def is_reached():
     """Check if the UAV reached the destination
@@ -85,9 +107,17 @@ def is_reached():
     else:
         return False
 
+
+def print_help():
+    s = 'Usage: python TASK_GLOBAL_GOTO.py SP_LATITUDE SP_LONGITUDE SP_ALTITUDE HOME_LATITUDE HOME_LONGITUDE HOME_ALTITUDE'
+    print s
    
 
 def main():
+    if(len(sys.argv) != 7):
+        print_help()
+        sys.exit(1)
+
     # print "TASK: "+str(sys.argv)
     # setup rospy env
     rospy.init_node('TCS_task', anonymous=True)
@@ -95,36 +125,48 @@ def main():
     mavros.set_namespace('/mavros')
    
     # setup publisher 
-    setpoint_pub = rospy.Publisher(mavros.get_topic('setpoint_raw','global'), queue_size=10)
+    setpoint_pub = rospy.Publisher(mavros.get_topic('setpoint_raw','local'), queue_size=10)
 
     # setup setpoint_msg
-    setpoint_msg = mavros.msg.GlobalPositionTarget(
+    setpoint_msg = mavros.setpoint.PoseStamped(
             header=std_msgs.msg.Header(
-                frame_id="global_pose",
+                frame_id="local_pose",
                 stamp=rospy.Time.now()),
             )
 
     # setup subscriber
-    position_local_sub = rospy.Subscriber(mavros.get_topic('global_position', 'global'),
-    	sensor_msgs.msg.NavSatFix, position_cb)
+    position_local_sub = rospy.Subscriber(mavros.get_topic('local_position', 'pose'),
+        SP.PoseStamped, local_cb)
 
     # setup task pub
     task_watchdog = TCS_util.Task_watchdog('TASK_GLOBAL_GOTO')
 
     # interprete the input position
-    setpoint_arg = sys.argv[1].split(' ')
-    setpoint_position.x=float(setpoint_arg[0])
-    setpoint_position.y=float(setpoint_arg[1])
-    setpoint_position.z=float(setpoint_arg[2])
-    print "Latitude: {}, Longitude: {}, Altitude: {}".format(setpoint_position.x,
-    	setpoint_position.y, setpoint_position.z)
+    global setpoint_position_global
+    global home_position
+    setpoint_position_global.x=float(sys.argv[2])
+    setpoint_position_global.y=float(sys.argv[3])
+    setpoint_position_global.z=float(sys.argv[4])
+    home_position.x = float(sys.argv[5])
+    home_position.y = float(sys.argv[6])
+    home_position.z = float(sys.argv[7])
+
+    print "Home Setpoint"
+    print "Latitude: {}, Longitude: {}, Altitude: {}".format(home_position.x, home_position.y, home_position.z)
+
+    print "Target Setpoint"
+    print "Latitude: {}, Longitude: {}, Altitude: {}".format(setpoint_position_global.x, setpoint_position_global.y, setpoint_position_global.z)
+    
+    # convert global setpoint coordinate to local setpoint coordinate
+    convertSPtoLocal()
 
     # setup setpoint poisiton and prepare to publish the position
+    global setpoint_position
     set_target(setpoint_msg,
     	setpoint_position.x,
     	setpoint_position.y,
     	setpoint_position.z)
-
+    
     # In this while loop, do the job.
     while(not is_reached()):
         # When the UAV reached the position, 

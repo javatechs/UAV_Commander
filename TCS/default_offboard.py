@@ -9,6 +9,7 @@ import mavros.setpoint
 import mavros.command
 import mavros_msgs.msg
 import mavros_msgs.srv
+from sesnor_msgs.msg import NavSatFix
 import time
 from datetime import datetime
 from UAV_Task import *
@@ -20,7 +21,15 @@ import sys
 import signal
 import subprocess
 
+# flat to indicate flight mode
+FLIGHT_Mode = 'GPS'
 
+# flag to indicate whether home global position exists
+# commander blocks until home position is available if in GPS mode
+homeSet = False
+
+# home GPS setpoint
+home = None
 
 def signal_handler(signal, frame):
         print('You pressed Ctrl+C!')
@@ -63,11 +72,22 @@ def is_reached(current, setpoint):
     else:
         return False
 
+def update_home_callback(data):
+    global homeSet
+    global home
+    if(not homeSet):
+        homeSet = True
+        home = TCS_util.vector3()
+        home.x = data.latitude
+        home.y = data.longitude
+        home.z = data.altitude 
+
 def update_setpoint():
     pass
 
 
 def main():
+
     rospy.init_node('default_offboard', anonymous=True)
     rate = rospy.Rate(20)
     mavros.set_namespace('/mavros')
@@ -83,6 +103,16 @@ def main():
     # /mavros/setpoint_raw/target_local
     setpoint_local_sub = rospy.Subscriber(mavros.get_topic('setpoint_raw', 'target_local'),
         mavros_msgs.msg.PositionTarget, _setpoint_position_callback)
+
+    home = TCS_util.vector3()
+    global FLIGHT_MODE
+    if(FLIGHT_MODE == 'GPS'):
+        global homeSet
+        # requires this to obtain the home position
+        setpoint_global_sub = rospy.Subscriber(mavros.get_topic('global_position', 'global'),
+            NavSatFix, update_home_callback)
+        while(not homeSet): pass
+        setpoint_global_sub.shutdown()
 
     # setup publisher
     # /mavros/setpoint/position/local
@@ -101,7 +131,8 @@ def main():
             )
 
     #read task list
-    Task_mgr = TCS_util.Task_manager('task_list.log')
+    global home
+    Task_mgr = TCS_util.Task_manager(fname='task_list.log',homesp=home)
 
 
     # wait for FCU connection
@@ -145,7 +176,7 @@ def main():
 
         # update setpoint to stay in offboard mode
         # does it work with global setpoints? Do we need global setpoints at all?
-        setpoint_keeper.update(type='LOCAL')
+        setpoint_keeper.update()
         
 
         if(Task_mgr.task_finished()):

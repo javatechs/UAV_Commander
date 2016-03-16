@@ -26,10 +26,10 @@ sys.path.append('/usr/local/lib/i386-linux-gnu/python2.7/site-packages/')
 
 
 class vector3(object):
-    def __init__(self):
-        self.x = 0.0
-        self.y = 0.0
-        self.z = 0.0
+    def __init__(self, x = 0.0, y = 0.0, z = 0.0):
+        self.x = x
+        self.y = y
+        self.z = z
 
 
 class SetpointMonitor(object):
@@ -59,7 +59,6 @@ class SetpointMonitor(object):
                 frame_id=self.frame_id,
                 stamp=rospy.Time.now()),
             )
-        )
 
     def _local_cb(self, topic):
         if (topic.header.frame_id == self.frame_id):
@@ -114,7 +113,7 @@ class SetpointMonitor(object):
             pass
 
 class Task_manager(object):
-    def __init__(self, fname):
+    def __init__(self, fname, homesp):
         self.tasklog = open(fname, 'r')
         self.tasklist=[]
         self.task_amount=0
@@ -122,11 +121,13 @@ class Task_manager(object):
         self.task_finish=True
         self.task_env = os.environ.copy()
         self.timestamp=rospy.Time.now()
+        self.homesp = homesp
 
         for eachline in self.tasklog:
             line = eachline.strip('\n').split(' ')
             # python TASK.py [args] [timeout in second]
-            self.tasklist.append(['python', str(line[0])+'.py', ' '.join(line[1:-1])])
+            arglist = ['python', str(line[0])+'.py'] + line[1:-1] + [homesp.x, homesp.y, homesp.z]
+            self.tasklist.append(str(arglist[i]) for i in range(len(arglist)))
             self.task_amount+=1
         self.tasklog.close()
 
