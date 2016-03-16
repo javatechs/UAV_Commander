@@ -22,7 +22,7 @@ def globalToECEF(latitude, longitude, altitude):
 
 def ECEFtoENU(ECEFp,ECEFo,latitude,longitude):
     """converts from ECEF coordinate to local coordinate
-    Formulae: https://en.wikipedia.org/wiki/Geographic_coordinate_conversion#From_ENU_to_ECEF
+    Formulae: https://en.wikipedia.org/wiki/Geographic_coordinate_conversion#From_ECEF_to_ENU
     """
     phi = numpy.radians(latitude)
     lam = numpy.radians(longitude)
@@ -34,4 +34,21 @@ def ECEFtoENU(ECEFp,ECEFo,latitude,longitude):
     Y = ECEFp.y - ECEFo.y
     Z = ECEFp.z - ECEFo.z
     V = numpy.array([X,Y,Z]).transpose()
-    return M.dot(V)
+    R = M.dot(V)
+    return TCS_util.vector3(R[0,0],R[0,1],R[0,2])
+
+def ECEFtoNED(ECEFp,ECEFo,latitude,longitude):
+    """converts from ECEF coordinate to local coordinate
+    """
+    phi = numpy.radians(latitude)
+    lam = numpy.radians(longitude)
+    r1 = (-math.sin(phi)*math.cos(lam), -math.sin(phi)*math.sin(lam), math.cos(phi))
+    r2 = (-math.sin(lam), math.cos(lam), 0.0)
+    r3 = (-math.cos(phi)*math.cos(lam), -math.cos(phi)*math.sin(lam), -math.sin(phi))
+    M = numpy.matrix((r1,r2,r3))
+    X = ECEFp.x - ECEFo.x
+    Y = ECEFp.y - ECEFo.y
+    Z = ECEFp.z - ECEFo.z
+    V = [X,Y,Z]
+    R = M.dot(V)
+    return TCS_util.vector3(R[0,0],R[0,1],R[0,2])
