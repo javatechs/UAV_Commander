@@ -85,6 +85,22 @@ def update_home_callback(data):
 def update_setpoint():
     pass
 
+def check_offboard(last_request):
+    global UAV_state
+    if( UAV_state.mode != "OFFBOARD" and
+        (rospy.Time.now() - last_request > rospy.Duration(5.0))):
+        if( set_mode(0,'OFFBOARD').success):
+            print "Offboard enabled"
+        return rospy.Time.now()
+    else:
+        if(not UAV_state.armed and
+            (rospy.Time.now() - last_request > rospy.Duration(5.0))):
+            if( mavros.command.arming(True)):
+                print "Vehicle armed"
+            return rospy.Time.now()
+        else:
+            return last_request
+
 
 def main():
 
@@ -158,20 +174,14 @@ def main():
     last_request = rospy.Time.now()
 
 
+    # runs the initial task
+    last_request = check_offboard(last_request)
+    if (not Task_mgr.alldone()):
+        Task_mgr.nexttask()
     # enter the main loop
     while(True):
         # print "Entered whiled loop"
-        if( UAV_state.mode != "OFFBOARD" and
-            (rospy.Time.now() - last_request > rospy.Duration(5.0))):
-            if( set_mode(0,'OFFBOARD').success):
-                print "Offboard enabled"
-            last_request = rospy.Time.now()
-        else:
-            if(not UAV_state.armed and
-                (rospy.Time.now() - last_request > rospy.Duration(5.0))):
-                if( mavros.command.arming(True)):
-                    print "Vehicle armed"
-                last_request = rospy.Time.now()
+        last_request = check_offboard(last_request)
 
         # update setpoint to stay in offboard mode
         # does it work with global setpoints? Do we need global setpoints at all?

@@ -127,7 +127,7 @@ class Task_manager(object):
             # python TASK.py [args] [timeout in second]
             arglist = ['python', str(line[0])+'.py'] + line[1:len(line)] + [homesp.x, homesp.y, homesp.z]
             print arglist
-            self.tasklist.append(str(arglist[i]) for i in range(len(arglist)))
+            self.tasklist.append(list(str(arglist[i]) for i in range(len(arglist))))
             self.task_amount+=1
         self.tasklog.close()
 
