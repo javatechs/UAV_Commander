@@ -9,7 +9,7 @@ import mavros.setpoint
 import mavros.command
 import mavros_msgs.msg
 import mavros_msgs.srv
-from sesnor_msgs.msg import NavSatFix
+from sensor_msgs.msg import NavSatFix
 import time
 from datetime import datetime
 from UAV_Task import *
@@ -22,7 +22,7 @@ import signal
 import subprocess
 
 # flat to indicate flight mode
-FLIGHT_Mode = 'GPS'
+FLIGHT_MODE = 'GPS'
 
 # flag to indicate whether home global position exists
 # commander blocks until home position is available if in GPS mode
@@ -104,6 +104,7 @@ def main():
     setpoint_local_sub = rospy.Subscriber(mavros.get_topic('setpoint_raw', 'target_local'),
         mavros_msgs.msg.PositionTarget, _setpoint_position_callback)
 
+    global home
     home = TCS_util.vector3()
     global FLIGHT_MODE
     if(FLIGHT_MODE == 'GPS'):
@@ -112,7 +113,6 @@ def main():
         setpoint_global_sub = rospy.Subscriber(mavros.get_topic('global_position', 'global'),
             NavSatFix, update_home_callback)
         while(not homeSet): pass
-        setpoint_global_sub.shutdown()
 
     # setup publisher
     # /mavros/setpoint/position/local
@@ -131,7 +131,6 @@ def main():
             )
 
     #read task list
-    global home
     Task_mgr = TCS_util.Task_manager(fname='task_list.log',homesp=home)
 
 

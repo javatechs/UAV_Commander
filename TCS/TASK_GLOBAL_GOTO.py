@@ -38,7 +38,8 @@ from mavros.utils import *
 from mavros import setpoint as SP
 import mavros.command
 import mavros_msgs.msg
-import mavros_msgs.srvi
+import mavros_msgs.srv
+import std_msgs
 
 import time
 from datetime import datetime
@@ -77,17 +78,20 @@ def convertSPtoLocal():
 
     #Compute setpoint_position
     global setpoint_position
-    setpoint_position = Coordinate.ECEFtoENU(spECEF,homeECEF,lato,lono)
+    sp = Coordinate.ECEFtoENU(spECEF,homeECEF,lato,lono)
+    setpoint_position.x = sp.x
+    setpoint_position.y = sp.y
+    setpoint_position.z = setpoint_position_global.z
     
     
 
 def set_target(msg, x, y, z):
     """A wrapper assigning the x,y,z values
     """
-    msg.pose.position = x
-    msg.pose.position = y
-    msg.pose.position = z
-    pose.header=mavros.setpoint.Header(
+    msg.pose.position.x = x
+    msg.pose.position.y = y
+    msg.pose.position.z = z
+    msg.header=mavros.setpoint.Header(
         frame_id="global_pose", 
         stamp=rospy.Time.now())
 
@@ -125,7 +129,7 @@ def main():
     mavros.set_namespace('/mavros')
    
     # setup publisher 
-    setpoint_pub = rospy.Publisher(mavros.get_topic('setpoint_raw','local'), queue_size=10)
+    setpoint_pub = mavros.setpoint.get_pub_position_local(queue_size=10)
 
     # setup setpoint_msg
     setpoint_msg = mavros.setpoint.PoseStamped(
@@ -144,12 +148,13 @@ def main():
     # interprete the input position
     global setpoint_position_global
     global home_position
-    setpoint_position_global.x=float(sys.argv[2])
-    setpoint_position_global.y=float(sys.argv[3])
-    setpoint_position_global.z=float(sys.argv[4])
-    home_position.x = float(sys.argv[5])
-    home_position.y = float(sys.argv[6])
-    home_position.z = float(sys.argv[7])
+    print sys.argv
+    setpoint_position_global.x=float(sys.argv[1])
+    setpoint_position_global.y=float(sys.argv[2])
+    setpoint_position_global.z=float(sys.argv[3])
+    home_position.x = float(sys.argv[4])
+    home_position.y = float(sys.argv[5])
+    home_position.z = float(sys.argv[6])
 
     print "Home Setpoint"
     print "Latitude: {}, Longitude: {}, Altitude: {}".format(home_position.x, home_position.y, home_position.z)
@@ -160,8 +165,11 @@ def main():
     # convert global setpoint coordinate to local setpoint coordinate
     convertSPtoLocal()
 
+
     # setup setpoint poisiton and prepare to publish the position
     global setpoint_position
+    sp = setpoint_position
+    print "Setpoint Local Coordinate: x:%f, y:%f, z:%f" %(sp.x, sp.y, sp.z)
     set_target(setpoint_msg,
     	setpoint_position.x,
     	setpoint_position.y,
@@ -171,7 +179,7 @@ def main():
     while(not is_reached()):
         # When the UAV reached the position, 
         # publish the task finished signal and exit
-    	setpoint_local_pub.publish(setpoint_msg)
+    	setpoint_pub.publish(setpoint_msg)
         # TODO: publish the task status as conducting
         task_watchdog.report_running()
 
