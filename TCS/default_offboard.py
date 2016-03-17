@@ -149,6 +149,7 @@ def main():
     #read task list
     Task_mgr = TCS_util.Task_manager(fname='task_list.log',homesp=home)
 
+    print "initialize finished!"
 
     # wait for FCU connection
     while(not UAV_state.connected):
@@ -191,6 +192,7 @@ def main():
         if(Task_mgr.task_finished()):
             # If the current task has been done
             rospy.loginfo("Current task is finished!")
+            Task_mgr.killtask()
             if (not Task_mgr.alldone()):
                 # If there are tasks left
                 Task_mgr.nexttask()
@@ -198,6 +200,7 @@ def main():
             else:
                 # Current task has been done and no task left
                 rospy.loginfo("All tasks have been done!")
+                Task_mgr.killall()
                 while (UAV_state.mode != "AUTO.LAND"):
                     set_mode(0,'AUTO.LAND')
                     rate.sleep()

@@ -121,6 +121,7 @@ class Task_manager(object):
         self.task_env = os.environ.copy()
         self.timestamp=rospy.Time.now()
         self.homesp = homesp
+        self.pros = []
 
         for eachline in self.tasklog:
             line = eachline.strip('\n').split(' ')
@@ -139,8 +140,8 @@ class Task_manager(object):
             return
         # the following line is very inefficient
         cur_task = self.tasklist[self.task_index]
-        print 'Current Task CB' 
-        print cur_task
+        #print 'Current Task CB' 
+        #print cur_task
         record_task = cur_task[1].split('.',1)[0]
         #print ("running task: {}, record_task: {}").format(topic.task_name, record_task)
         # very unsafe: multiple tasks with the same name can change the task status despite the order
@@ -166,9 +167,18 @@ class Task_manager(object):
             pass
         self.task_index+=1
         rospy.loginfo("New task will execute: {}".format(self.tasklist[self.task_index]))
-        subprocess.Popen(self.tasklist[self.task_index], env=self.task_env)
+        pid = subprocess.Popen(self.tasklist[self.task_index], env=self.task_env, preexec_fn = os.setsid)
         self.task_finish = False
+        self.pros.append(pid)
         self.timestamp=rospy.Time.now()
+
+    def killtask(self):
+        pro = self.pros[self.task_index]
+        os.killpg(os.getpgid(pro.pid), signal.SIGTERM)
+
+    def killall(self):
+        for pro in self.pros:
+            os.killpg(os.getpid(pro.pid), signal.SIGTERM)
 
 
     def task_finished(self):

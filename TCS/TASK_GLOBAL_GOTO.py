@@ -96,9 +96,13 @@ def set_target(msg, x, y, z):
         stamp=rospy.Time.now())
 
 def local_cb(data):
+    global current_position
+    global setpoint_position
     current_position.x = data.pose.position.x
     current_position.y = data.pose.position.y
     current_position.z = data.pose.position.z
+    print 'Setpoint: x: %f, y: %f, z: %f' % (setpoint_position.x, setpoint_position.y, setpoint_position.z)
+    print 'Current: x: %f, y: %f, z: %f' %(current_position.x, current_position.y, current_position.z)
 
 def is_reached():
     """Check if the UAV reached the destination
